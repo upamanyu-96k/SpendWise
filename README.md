@@ -1,10 +1,6 @@
 # SpendWise
 
-<<<<<<< HEAD
-**Live demo:** https://spendwise-fbzk.onrender.com/budgets
-=======
-**Live demo:** [https://your-link.onrender.com](https://spendwise-fbzk.onrender.com/budgets)
->>>>>>> d15b90d74c98bb28a43ef2b9345214f4c7775df9
+**Live demo:** https://spendwise-fbzk.onrender.com
 (Free hosting: the first load after a quiet period can take about a minute.)
 
 Full-stack personal expense and budget management platform. Record income and expenses, set monthly category budgets, and get plain-language insights about your spending.
