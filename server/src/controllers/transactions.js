@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Transaction from '../models/Transaction.js';
 import { AppError } from '../middleware/errors.js';
+import { toCsv } from '../services/csv.js';
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -44,4 +45,15 @@ export async function remove(req, res) {
   const tx = await Transaction.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
   if (!tx) throw new AppError(404, 'Transaction not found.');
   res.status(204).end();
+}
+
+export async function exportCsv(req, res) {
+  const items = await Transaction.find({ userId: req.user.id }).sort({ date: -1 }).limit(50000).lean();
+  const csv = toCsv(
+    ['Date', 'Type', 'Category', 'Amount (INR)', 'Payment method', 'Note'],
+    items.map((t) => [t.date.toISOString().slice(0, 10), t.type, t.category, t.amount, t.paymentMethod, t.description])
+  );
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="spendwise-transactions.csv"');
+  res.send('\uFEFF' + csv); // BOM so Excel reads rupee symbols and accents correctly
 }

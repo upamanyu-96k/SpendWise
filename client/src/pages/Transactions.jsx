@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { api } from '../services/api.js';
 import { useAsync } from '../hooks/useAsync.js';
-import { Empty, ErrorMessage, Modal, Spinner } from '../components/ui.jsx';
+import Icon from '../components/Icons.jsx';
+import { CategoryAvatar, Empty, ErrorMessage, Modal, PageHeader, Segmented, Skeleton } from '../components/ui.jsx';
+import { useToast } from '../components/toast.jsx';
 import TransactionForm from '../components/TransactionForm.jsx';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../constants.js';
 import { formatDate, inr } from '../utils.js';
@@ -10,98 +12,103 @@ const ALL = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES])];
 const emptyFilters = { q: '', type: '', category: '', paymentMethod: '', from: '', to: '', minAmount: '', maxAmount: '' };
 
 export default function Transactions() {
+  const toast = useToast();
   const [filters, setFilters] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
+  const [showMore, setShowMore] = useState(false);
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null); // null | 'new' | transaction
-  const [actionError, setActionError] = useState('');
-  const { data, loading, error, reload } = useAsync(() => api.transactions({ ...applied, page, limit: 15 }), [applied, page]);
+  const [toDelete, setToDelete] = useState(null);
+  const { data, loading, error, reload } = useAsync(() => api.transactions({ ...applied, page, limit: 12 }), [applied, page]);
   const set = (k) => (e) => setFilters((f) => ({ ...f, [k]: e.target.value }));
 
-  const apply = (e) => { e.preventDefault(); setPage(1); setApplied(filters); };
+  const apply = (e) => { e?.preventDefault(); setPage(1); setApplied(filters); };
   const reset = () => { setFilters(emptyFilters); setApplied(emptyFilters); setPage(1); };
+  const pickType = (type) => { const next = { ...filters, type }; setFilters(next); setApplied(next); setPage(1); };
+  const activeCount = Object.values(applied).filter(Boolean).length;
 
-  async function remove(t) {
-    if (!window.confirm(`Delete "${t.description || t.category}" for ${inr(t.amount)}?`)) return;
-    setActionError('');
-    try { await api.deleteTransaction(t._id); reload(); } catch (e) { setActionError(e.message); }
+  async function confirmDelete() {
+    try {
+      await api.deleteTransaction(toDelete._id);
+      toast.success('Transaction deleted.');
+      setToDelete(null);
+      reload();
+    } catch (e) {
+      toast.error(e.message);
+      setToDelete(null);
+    }
+  }
+
+  async function exportCsv() {
+    try { await api.exportTransactions(); toast.success('Your transactions were downloaded.'); } catch (e) { toast.error(e.message); }
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Transactions</h1>
-        <button className="btn-primary" onClick={() => setEditing('new')}>Add transaction</button>
-      </div>
+      <PageHeader title="Transactions" subtitle="Everything you've earned and spent.">
+        <button className="btn-ghost" onClick={exportCsv}><Icon name="download" className="size-4" />Export CSV</button>
+        <button className="btn-primary" onClick={() => setEditing('new')}><Icon name="plus" className="size-4" />Add transaction</button>
+      </PageHeader>
 
-      <form onSubmit={apply} className="card grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-        <div className="col-span-2">
-          <label className="label" htmlFor="q">Search notes</label>
-          <input id="q" className="input" value={filters.q} onChange={set('q')} placeholder="Lunch" />
+      <form onSubmit={apply} className="card space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[200px] flex-1">
+            <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
+            <input aria-label="Search notes" className="input pl-10" value={filters.q} onChange={set('q')} placeholder="Search notes…" />
+          </div>
+          <Segmented label="Type" value={filters.type} onChange={pickType} options={[{ value: '', label: 'All' }, { value: 'expense', label: 'Expenses' }, { value: 'income', label: 'Income' }]} />
+          <button type="button" className="btn-ghost" onClick={() => setShowMore((s) => !s)} aria-expanded={showMore}>
+            <Icon name="filter" className="size-4" />Filters{activeCount > 0 && <span className="rounded-full bg-brand px-1.5 text-xs text-brand-fg">{activeCount}</span>}
+          </button>
         </div>
-        <div>
-          <label className="label" htmlFor="ftype">Type</label>
-          <select id="ftype" className="input" value={filters.type} onChange={set('type')}>
-            <option value="">All</option><option value="expense">Expense</option><option value="income">Income</option>
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="fcat">Category</label>
-          <select id="fcat" className="input" value={filters.category} onChange={set('category')}>
-            <option value="">All</option>{ALL.map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="fpm">Paid with</label>
-          <select id="fpm" className="input" value={filters.paymentMethod} onChange={set('paymentMethod')}>
-            <option value="">All</option>{PAYMENT_METHODS.map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div><label className="label" htmlFor="from">From</label><input id="from" type="date" className="input" value={filters.from} onChange={set('from')} /></div>
-        <div><label className="label" htmlFor="to">To</label><input id="to" type="date" className="input" value={filters.to} onChange={set('to')} /></div>
-        <div><label className="label" htmlFor="min">Min ₹</label><input id="min" type="number" min="0" className="input" value={filters.minAmount} onChange={set('minAmount')} /></div>
-        <div><label className="label" htmlFor="max">Max ₹</label><input id="max" type="number" min="0" className="input" value={filters.maxAmount} onChange={set('maxAmount')} /></div>
-        <div className="col-span-2 md:col-span-4 flex gap-2 justify-end">
-          <button type="button" className="btn-ghost" onClick={reset}>Clear filters</button>
-          <button className="btn-primary">Apply filters</button>
+        {showMore && (
+          <div className="grid grid-cols-2 gap-3 border-t border-line pt-4 md:grid-cols-3 lg:grid-cols-6">
+            <div><label className="label" htmlFor="fcat">Category</label><select id="fcat" className="input" value={filters.category} onChange={set('category')}><option value="">All</option>{ALL.map((c) => <option key={c}>{c}</option>)}</select></div>
+            <div><label className="label" htmlFor="fpm">Paid with</label><select id="fpm" className="input" value={filters.paymentMethod} onChange={set('paymentMethod')}><option value="">All</option>{PAYMENT_METHODS.map((c) => <option key={c}>{c}</option>)}</select></div>
+            <div><label className="label" htmlFor="from">From</label><input id="from" type="date" className="input" value={filters.from} onChange={set('from')} /></div>
+            <div><label className="label" htmlFor="to">To</label><input id="to" type="date" className="input" value={filters.to} onChange={set('to')} /></div>
+            <div><label className="label" htmlFor="min">Min ₹</label><input id="min" type="number" min="0" className="input" value={filters.minAmount} onChange={set('minAmount')} /></div>
+            <div><label className="label" htmlFor="max">Max ₹</label><input id="max" type="number" min="0" className="input" value={filters.maxAmount} onChange={set('maxAmount')} /></div>
+          </div>
+        )}
+        <div className="flex justify-end gap-2">
+          {activeCount > 0 && <button type="button" className="btn-ghost" onClick={reset}>Clear</button>}
+          <button className="btn-primary">Apply</button>
         </div>
       </form>
 
-      <ErrorMessage message={error || actionError} />
+      <ErrorMessage message={error} />
 
-      <div className="card p-0 overflow-x-auto">
-        {loading && !data ? <Spinner /> : data?.items.length === 0 ? (
-          <Empty title="No transactions found" hint="Try different filters, or add a new transaction." />
+      <div className="card p-2 md:p-3">
+        {loading && !data ? (
+          <div className="space-y-2 p-2"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div>
+        ) : data?.items.length === 0 ? (
+          <Empty icon="list" title="No transactions found" hint={activeCount ? 'Try removing a filter.' : 'Add your first transaction to get started.'}>
+            {!activeCount && <button className="btn-primary" onClick={() => setEditing('new')}><Icon name="plus" className="size-4" />Add transaction</button>}
+          </Empty>
         ) : data && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-ink/70 border-b border-line">
-                <th className="p-3 font-medium">Date</th><th className="p-3 font-medium">Note</th><th className="p-3 font-medium">Category</th>
-                <th className="p-3 font-medium">Paid with</th><th className="p-3 font-medium text-right">Amount</th><th className="p-3"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((t) => (
-                <tr key={t._id} className="border-b border-line last:border-0">
-                  <td className="p-3 whitespace-nowrap">{formatDate(t.date)}</td>
-                  <td className="p-3">{t.description || '—'}</td>
-                  <td className="p-3">{t.category}</td>
-                  <td className="p-3">{t.paymentMethod}</td>
-                  <td className={`p-3 text-right whitespace-nowrap font-medium ${t.type === 'income' ? 'text-brand-dark' : ''}`}>{t.type === 'income' ? '+' : '−'}{inr(t.amount)}</td>
-                  <td className="p-3 whitespace-nowrap text-right">
-                    <button className="text-brand-dark underline mr-3" onClick={() => setEditing(t)}>Edit</button>
-                    <button className="text-danger underline" onClick={() => remove(t)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="divide-y divide-line">
+            {data.items.map((t) => (
+              <li key={t._id} className="group flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-raised/60 md:px-3">
+                <CategoryAvatar category={t.category} className="size-11 text-xl" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{t.description || t.category}</p>
+                  <p className="text-xs text-muted">{t.category} · {t.paymentMethod} · {formatDate(t.date)}</p>
+                </div>
+                <p className={`whitespace-nowrap font-semibold ${t.type === 'income' ? 'text-good' : ''}`}>{t.type === 'income' ? '+' : '−'}{inr(t.amount)}</p>
+                <div className="flex md:opacity-0 md:transition md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                  <button className="icon-btn" onClick={() => setEditing(t)} aria-label={`Edit ${t.description || t.category}`}><Icon name="edit" className="size-4" /></button>
+                  <button className="icon-btn hover:text-bad" onClick={() => setToDelete(t)} aria-label={`Delete ${t.description || t.category}`}><Icon name="trash" className="size-4" /></button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
       {data && data.pages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-ink/70">{data.total} transactions · page {data.page} of {data.pages}</span>
+          <span className="text-muted">{data.total} transactions · page {data.page} of {data.pages}</span>
           <div className="flex gap-2">
             <button className="btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
             <button className="btn-ghost" disabled={page >= data.pages} onClick={() => setPage(page + 1)}>Next</button>
@@ -112,6 +119,16 @@ export default function Transactions() {
       {editing && (
         <Modal title={editing === 'new' ? 'Add transaction' : 'Edit transaction'} onClose={() => setEditing(null)}>
           <TransactionForm initial={editing === 'new' ? null : editing} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />
+        </Modal>
+      )}
+
+      {toDelete && (
+        <Modal title="Delete transaction?" onClose={() => setToDelete(null)}>
+          <p className="text-sm text-muted">This will permanently delete <span className="font-medium text-main">{toDelete.description || toDelete.category}</span> ({inr(toDelete.amount)}).</p>
+          <div className="mt-6 flex justify-end gap-2">
+            <button className="btn-ghost" onClick={() => setToDelete(null)}>Cancel</button>
+            <button className="btn-danger" onClick={confirmDelete}>Delete</button>
+          </div>
         </Modal>
       )}
     </div>

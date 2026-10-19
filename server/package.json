@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node scripts/seed.js",
-    "test": "node --test ../tests/finance.test.js"
+    "test": "node --test ../tests/finance.test.js ../tests/csv.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,7 +19,6 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.0",
     "morgan": "^1.10.0",
-    "spendwise": "file:..",
     "zod": "^3.23.8"
   },
   "devDependencies": {

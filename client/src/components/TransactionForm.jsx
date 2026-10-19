@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { api } from '../services/api.js';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../constants.js';
 import { toInputDate } from '../utils.js';
-import { ErrorMessage } from './ui.jsx';
+import { ErrorMessage, Segmented } from './ui.jsx';
+import { useToast } from './toast.jsx';
 
 export default function TransactionForm({ initial, onSaved, onCancel }) {
+  const toast = useToast();
   const [form, setForm] = useState(
     initial
       ? { ...initial, date: toInputDate(initial.date), amount: String(initial.amount) }
@@ -16,7 +18,10 @@ export default function TransactionForm({ initial, onSaved, onCancel }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const changeType = (type) =>
-    setForm((f) => ({ ...f, type, category: (type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).includes(f.category) ? f.category : (type === 'expense' ? 'Food' : 'Salary') }));
+    setForm((f) => {
+      const list = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+      return { ...f, type, category: list.includes(f.category) ? f.category : list[0] };
+    });
 
   async function submit(e) {
     e.preventDefault();
@@ -26,6 +31,7 @@ export default function TransactionForm({ initial, onSaved, onCancel }) {
       const body = { type: form.type, amount: Number(form.amount), category: form.category, description: form.description, paymentMethod: form.paymentMethod, date: form.date };
       if (initial) await api.updateTransaction(initial._id, body);
       else await api.createTransaction(body);
+      toast.success(initial ? 'Transaction updated.' : 'Transaction added.');
       onSaved();
     } catch (err) {
       setError(err.message);
@@ -36,17 +42,10 @@ export default function TransactionForm({ initial, onSaved, onCancel }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Transaction type">
-        {['expense', 'income'].map((t) => (
-          <button type="button" key={t} onClick={() => changeType(t)} aria-pressed={form.type === t}
-            className={`btn ${form.type === t ? 'bg-ink text-white' : 'border border-line bg-white'}`}>
-            {t === 'expense' ? 'Expense' : 'Income'}
-          </button>
-        ))}
-      </div>
+      <Segmented label="Transaction type" value={form.type} onChange={changeType} options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]} />
       <div>
         <label className="label" htmlFor="amount">Amount (₹)</label>
-        <input id="amount" className="input" type="number" min="0.01" step="0.01" required value={form.amount} onChange={set('amount')} />
+        <input id="amount" className="input text-lg font-semibold" type="number" min="0.01" step="0.01" required autoFocus value={form.amount} onChange={set('amount')} placeholder="0.00" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -71,7 +70,7 @@ export default function TransactionForm({ initial, onSaved, onCancel }) {
         <input id="desc" className="input" maxLength={200} placeholder="Lunch with team" value={form.description} onChange={set('description')} />
       </div>
       <ErrorMessage message={error} />
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-1">
         <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
         <button className="btn-primary" disabled={saving}>{saving ? 'Saving…' : initial ? 'Save changes' : 'Add transaction'}</button>
       </div>

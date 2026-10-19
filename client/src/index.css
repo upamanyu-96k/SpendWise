@@ -2,21 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Colour tokens are "R G B" triplets so Tailwind can add opacity (bg-brand/10) */
+:root {
+  --app: 244 246 251;
+  --surface: 255 255 255;
+  --raised: 241 244 249;
+  --line: 226 232 240;
+  --main: 15 23 42;
+  --muted: 100 116 139;
+  --brand: 13 148 136;
+  --brand-fg: 255 255 255;
+  --good: 5 150 105;
+  --warn: 217 119 6;
+  --bad: 220 38 38;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 14px 34px -18px rgb(15 23 42 / 0.16);
+  color-scheme: light;
+}
+
+.dark {
+  --app: 8 11 22;
+  --surface: 15 21 38;
+  --raised: 22 30 52;
+  --line: 36 48 78;
+  --main: 232 237 247;
+  --muted: 138 151 178;
+  --brand: 45 212 191;
+  --brand-fg: 4 24 26;
+  --good: 52 211 153;
+  --warn: 251 191 36;
+  --bad: 248 113 113;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 20px 44px -24px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
 @layer base {
-  body { @apply bg-paper text-ink font-sans antialiased; }
-  :focus-visible { @apply outline-2 outline-offset-2 outline-brand; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply bg-app text-main font-sans antialiased;
+    background-image:
+      radial-gradient(900px 480px at 85% -8%, rgb(var(--brand) / 0.10), transparent 70%),
+      radial-gradient(760px 420px at -8% 8%, rgb(139 92 246 / 0.10), transparent 70%);
+    background-attachment: fixed;
+  }
+  :focus-visible { @apply outline-none ring-2 ring-brand/60 ring-offset-2 ring-offset-app; }
+  ::selection { background: rgb(var(--brand) / 0.3); }
 }
 
 @layer components {
-  .card { @apply bg-white border border-line rounded-lg p-5; }
-  .label { @apply block text-sm font-medium mb-1; }
-  .input { @apply w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-brand; }
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
-  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-dark; }
-  .btn-ghost { @apply btn border border-line bg-white hover:bg-paper; }
-  .btn-danger { @apply btn border border-danger/30 text-danger bg-white hover:bg-danger-soft; }
+  .card { @apply rounded-2xl border border-line bg-surface/80 p-5 shadow-card backdrop-blur-sm; }
+  .label { @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted; }
+  .input {
+    @apply w-full rounded-xl border border-line bg-raised px-3.5 py-2.5 text-sm text-main
+      placeholder:text-muted/70 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium
+      transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-brand text-brand-fg shadow-glow hover:brightness-110; }
+  .btn-ghost { @apply btn border border-line bg-raised/60 text-main hover:bg-raised; }
+  .btn-danger { @apply btn border border-bad/30 bg-bad/10 text-bad hover:bg-bad/20; }
+  .icon-btn { @apply inline-grid size-9 place-items-center rounded-lg text-muted transition hover:bg-raised hover:text-main; }
+  .skeleton { @apply animate-pulse rounded-xl bg-raised; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

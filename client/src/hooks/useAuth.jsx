@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
+      setUser,
       login: (b) => authenticate(api.login, b),
       register: (b) => authenticate(api.register, b),
       logout,

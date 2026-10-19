@@ -13,6 +13,9 @@ Most people know roughly what they earn but not where it goes. SpendWise makes t
 ## Key Features
 
 - **Accounts**: register and log in with JWT authentication and bcrypt-hashed passwords.
+- **Profile**: view and edit your name and email (changing the email needs your password), change your password, export every transaction as CSV, and delete your account.
+- **Forgot password**: single-use reset links that expire after 30 minutes. Only a hash of the token is stored, and the endpoint answers the same way whether or not an account exists.
+- **Dark mode**: dark, light, or follow-the-system theme, remembered per device, with theme-aware charts.
 - **Transactions**: add, edit, delete, search, and filter by date range, category, payment method, type, and amount, with pagination.
 - **Budgets**: monthly limit per category, with progress bars that turn amber at 80% and red at 100%.
 - **Dashboard**: income, expenses, balance, savings rate, category breakdown, budget status, and recent activity for any month.
@@ -86,6 +89,9 @@ See `server/.env.example`.
 | `JWT_SECRET` | Long random string used to sign tokens |
 | `JWT_EXPIRES_IN` | Token lifetime (default 7d) |
 | `CLIENT_ORIGIN` | Allowed CORS origin for the client |
+| `APP_URL` | Optional. Base URL used in password-reset links (defaults to `CLIENT_ORIGIN`) |
+| `RESEND_API_KEY` | Optional. Enables real reset emails via resend.com. Without it, the reset link is printed in the server terminal (development only) |
+| `MAIL_FROM` | Optional. Sender address for reset emails |
 
 ## API Documentation
 
@@ -96,7 +102,13 @@ All routes are under `/api`. Everything except `/health`, `/auth/register`, and 
 | GET | `/health` | Health check |
 | POST | `/auth/register` | Create account. Body: `name`, `email`, `password` (8+ chars) |
 | POST | `/auth/login` | Log in. Returns `token` and `user` |
-| GET | `/auth/me` | Current user |
+| POST | `/auth/forgot-password` | Request a reset link. Body: `email` |
+| POST | `/auth/reset-password` | Set a new password. Body: `token`, `password` |
+| GET | `/auth/me` | Current user and counts of transactions and budgets |
+| PATCH | `/auth/profile` | Update `name` and/or `email` (email change needs `currentPassword`) |
+| POST | `/auth/change-password` | Body: `currentPassword`, `newPassword` |
+| DELETE | `/auth/account` | Delete account and all its data. Body: `password` |
+| GET | `/transactions/export` | Download all transactions as CSV |
 | GET | `/transactions` | List. Query: `q`, `type`, `category`, `paymentMethod`, `from`, `to`, `minAmount`, `maxAmount`, `page`, `limit` |
 | POST | `/transactions` | Create. Body: `type`, `amount`, `category`, `date`, `description?`, `paymentMethod?` |
 | PATCH | `/transactions/:id` | Edit any subset of fields |
@@ -123,7 +135,7 @@ Add screenshots to `docs/` after running the app and link them here:
 npm test
 ```
 
-The unit tests in `tests/finance.test.js` cover totals, floating-point handling, budget utilization and status thresholds, month boundaries, and insight generation.
+The unit tests in `tests/` cover totals, floating-point handling, budget utilization and status thresholds, month boundaries, insight generation, and CSV escaping (including spreadsheet-formula injection).
 
 Tested manually with Postman or curl before relying on it: registration, login, and the ownership checks (try using user A's token on user B's transaction id and confirm you get 404).
 
@@ -131,7 +143,8 @@ Tested manually with Postman or curl before relying on it: registration, login, 
 
 - No automated API or UI tests yet; only the finance logic is unit tested.
 - The JWT is stored in `localStorage`, which is simple but exposed to XSS. An httpOnly cookie would be stronger for production.
-- No password reset, email verification, or refresh tokens.
+- Real reset emails need an email service key (`RESEND_API_KEY`) and, for most providers, a verified sender domain. Without one, links are only printed to the server terminal.
+- No email verification or refresh tokens. Changing a password does not sign out other devices; their tokens stay valid until they expire (7 days).
 - Single currency (INR) and no recurring transactions.
 - Not deployed.
 

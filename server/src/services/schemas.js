@@ -48,3 +48,28 @@ export const budgetSchema = z.object({
 export const monthQuerySchema = z.object({ month: month.optional() });
 export const budgetQuerySchema = z.object({ month: month.optional() });
 export const analyticsQuerySchema = z.object({ months: z.coerce.number().int().min(2).max(12).default(6) });
+
+const newPassword = z.string().min(8, 'Password must be at least 8 characters').max(100);
+const emailField = z.string().trim().toLowerCase().email('Enter a valid email address');
+
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter your name').max(80).optional(),
+    email: emailField.optional(),
+    currentPassword: z.string().optional(),
+  })
+  .refine((v) => v.name || v.email, 'Nothing to update');
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password'),
+  newPassword,
+});
+
+export const forgotPasswordSchema = z.object({ email: emailField });
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20, 'This reset link is not valid').max(200),
+  password: newPassword,
+});
+
+export const deleteAccountSchema = z.object({ password: z.string().min(1, 'Enter your password') });

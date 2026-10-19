@@ -17,10 +17,17 @@ router.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 router.post('/auth/register', authLimiter, validate(s.registerSchema), h(auth.register));
 router.post('/auth/login', authLimiter, validate(s.loginSchema), h(auth.login));
+router.post('/auth/forgot-password', authLimiter, validate(s.forgotPasswordSchema), h(auth.forgotPassword));
+router.post('/auth/reset-password', authLimiter, validate(s.resetPasswordSchema), h(auth.resetPassword));
 router.get('/auth/me', requireAuth, h(auth.me));
 
 router.use(requireAuth);
 
+router.patch('/auth/profile', authLimiter, validate(s.updateProfileSchema), h(auth.updateProfile));
+router.post('/auth/change-password', authLimiter, validate(s.changePasswordSchema), h(auth.changePassword));
+router.delete('/auth/account', authLimiter, validate(s.deleteAccountSchema), h(auth.deleteAccount));
+
+router.get('/transactions/export', h(tx.exportCsv));
 router.get('/transactions', validate(s.transactionQuerySchema, 'query'), h(tx.list));
 router.post('/transactions', validate(s.transactionCreateSchema), h(tx.create));
 router.patch('/transactions/:id', validate(s.transactionUpdateSchema), h(tx.update));
