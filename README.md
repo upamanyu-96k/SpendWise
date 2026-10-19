@@ -1,5 +1,8 @@
 # SpendWise
 
+**Live demo:** https://your-link.onrender.com
+(Free hosting: the first load after a quiet period can take about a minute.)
+
 Full-stack personal expense and budget management platform. Record income and expenses, set monthly category budgets, and get plain-language insights about your spending.
 
 ## Overview
@@ -24,14 +27,14 @@ Most people know roughly what they earn but not where it goes. SpendWise makes t
 
 ## Technology Stack
 
-| Layer | Tools |
-|-------|-------|
-| Frontend | React 18, Vite, React Router, Tailwind CSS, Recharts |
-| Backend | Node.js, Express 4, Zod (validation), Helmet, CORS, express-rate-limit |
-| Database | MongoDB with Mongoose |
-| Auth | JSON Web Tokens, bcryptjs |
-| Tests | Node's built-in test runner |
-| CI | GitHub Actions |
+| Layer    | Tools                                                                  |
+| -------- | ---------------------------------------------------------------------- |
+| Frontend | React 18, Vite, React Router, Tailwind CSS, Recharts                   |
+| Backend  | Node.js, Express 4, Zod (validation), Helmet, CORS, express-rate-limit |
+| Database | MongoDB with Mongoose                                                  |
+| Auth     | JSON Web Tokens, bcryptjs                                              |
+| Tests    | Node's built-in test runner                                            |
+| CI       | GitHub Actions                                                         |
 
 ## System Architecture
 
@@ -82,42 +85,42 @@ Demo login after seeding: `demo@example.com` / `demo12345`.
 
 See `server/.env.example`.
 
-| Name | Purpose |
-|------|---------|
-| `PORT` | API port (default 5000) |
-| `MONGODB_URI` | MongoDB connection string |
-| `JWT_SECRET` | Long random string used to sign tokens |
-| `JWT_EXPIRES_IN` | Token lifetime (default 7d) |
-| `CLIENT_ORIGIN` | Allowed CORS origin for the client |
-| `APP_URL` | Optional. Base URL used in password-reset links (defaults to `CLIENT_ORIGIN`) |
+| Name             | Purpose                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`           | API port (default 5000)                                                                                                             |
+| `MONGODB_URI`    | MongoDB connection string                                                                                                           |
+| `JWT_SECRET`     | Long random string used to sign tokens                                                                                              |
+| `JWT_EXPIRES_IN` | Token lifetime (default 7d)                                                                                                         |
+| `CLIENT_ORIGIN`  | Allowed CORS origin for the client                                                                                                  |
+| `APP_URL`        | Optional. Base URL used in password-reset links (defaults to `CLIENT_ORIGIN`)                                                       |
 | `RESEND_API_KEY` | Optional. Enables real reset emails via resend.com. Without it, the reset link is printed in the server terminal (development only) |
-| `MAIL_FROM` | Optional. Sender address for reset emails |
+| `MAIL_FROM`      | Optional. Sender address for reset emails                                                                                           |
 
 ## API Documentation
 
 All routes are under `/api`. Everything except `/health`, `/auth/register`, and `/auth/login` requires `Authorization: Bearer <token>`.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| POST | `/auth/register` | Create account. Body: `name`, `email`, `password` (8+ chars) |
-| POST | `/auth/login` | Log in. Returns `token` and `user` |
-| POST | `/auth/forgot-password` | Request a reset link. Body: `email` |
-| POST | `/auth/reset-password` | Set a new password. Body: `token`, `password` |
-| GET | `/auth/me` | Current user and counts of transactions and budgets |
-| PATCH | `/auth/profile` | Update `name` and/or `email` (email change needs `currentPassword`) |
-| POST | `/auth/change-password` | Body: `currentPassword`, `newPassword` |
-| DELETE | `/auth/account` | Delete account and all its data. Body: `password` |
-| GET | `/transactions/export` | Download all transactions as CSV |
-| GET | `/transactions` | List. Query: `q`, `type`, `category`, `paymentMethod`, `from`, `to`, `minAmount`, `maxAmount`, `page`, `limit` |
-| POST | `/transactions` | Create. Body: `type`, `amount`, `category`, `date`, `description?`, `paymentMethod?` |
-| PATCH | `/transactions/:id` | Edit any subset of fields |
-| DELETE | `/transactions/:id` | Delete |
-| GET | `/budgets?month=YYYY-MM` | Budgets with spent, remaining, utilization, and status |
-| POST | `/budgets` | Create or update. Body: `category`, `month`, `monthlyLimit` |
-| DELETE | `/budgets/:id` | Delete |
-| GET | `/dashboard/summary?month=YYYY-MM` | Totals, categories, budgets, insights, recent transactions |
-| GET | `/analytics/monthly?months=6` | Month-by-month income, expenses, and category spend |
+| Method | Endpoint                           | Description                                                                                                    |
+| ------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| GET    | `/health`                          | Health check                                                                                                   |
+| POST   | `/auth/register`                   | Create account. Body: `name`, `email`, `password` (8+ chars)                                                   |
+| POST   | `/auth/login`                      | Log in. Returns `token` and `user`                                                                             |
+| POST   | `/auth/forgot-password`            | Request a reset link. Body: `email`                                                                            |
+| POST   | `/auth/reset-password`             | Set a new password. Body: `token`, `password`                                                                  |
+| GET    | `/auth/me`                         | Current user and counts of transactions and budgets                                                            |
+| PATCH  | `/auth/profile`                    | Update `name` and/or `email` (email change needs `currentPassword`)                                            |
+| POST   | `/auth/change-password`            | Body: `currentPassword`, `newPassword`                                                                         |
+| DELETE | `/auth/account`                    | Delete account and all its data. Body: `password`                                                              |
+| GET    | `/transactions/export`             | Download all transactions as CSV                                                                               |
+| GET    | `/transactions`                    | List. Query: `q`, `type`, `category`, `paymentMethod`, `from`, `to`, `minAmount`, `maxAmount`, `page`, `limit` |
+| POST   | `/transactions`                    | Create. Body: `type`, `amount`, `category`, `date`, `description?`, `paymentMethod?`                           |
+| PATCH  | `/transactions/:id`                | Edit any subset of fields                                                                                      |
+| DELETE | `/transactions/:id`                | Delete                                                                                                         |
+| GET    | `/budgets?month=YYYY-MM`           | Budgets with spent, remaining, utilization, and status                                                         |
+| POST   | `/budgets`                         | Create or update. Body: `category`, `month`, `monthlyLimit`                                                    |
+| DELETE | `/budgets/:id`                     | Delete                                                                                                         |
+| GET    | `/dashboard/summary?month=YYYY-MM` | Totals, categories, budgets, insights, recent transactions                                                     |
+| GET    | `/analytics/monthly?months=6`      | Month-by-month income, expenses, and category spend                                                            |
 
 Errors return `{ "message": "...", "details": [...] }` with a suitable status code (400 validation, 401 auth, 404 not found, 409 duplicate).
 
